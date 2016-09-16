@@ -1,12 +1,11 @@
 #encoding:utf-8
-import requests,os,time,json,cookielib
+import requests,os,time,json,cookielib,re
 from PIL import Image
 from pyquery import PyQuery as pq
 
 class Spider:
 	def __init__(self,username,password,num,size,max_page):
 		self.homeUrl = 'https://www.zhihu.com'
-		self.loginUrl = 'http://www.zhihu.com/login/phone_num'
 		self.siteUrl = 'https://www.zhihu.com/question/'
 		self.captchaUrl = 'https://www.zhihu.com/captcha.gif'
 		self.headers = {
@@ -54,11 +53,19 @@ class Spider:
 	def login(self):
 		global session
 		session = requests.session()
-		url = self.loginUrl
 		headers = self.headers
 		xsrf = self.getXsrf()
 		captcha = self.getCaptcha()
-		data = {'phone_num':self.username,'password':self.password,'_xsrf':xsrf,'captcha':captcha,'remember_me':'true'}
+		if re.match(r"^1\d{10}$", self.username):
+			print '手机号登录'
+                        url = 'http://www.zhihu.com/login/phone_num'
+                        data = {'phone_num':self.username,'password':self.password,'_xsrf':xsrf,'captcha':captcha,'remember_me':'true'}
+                else:
+			print '邮箱登录'
+                        url = 'http://wwww.zhihu.com/login/email'
+                        data = {'email':self.username,'password':self.password,'_xsrf':xsrf,'captcha':captcha,'remember_me':'true'}
+		print url
+		print data
 		res = session.post(url,data = data,headers = headers)
 		print res.json()['msg']
 		if res.json()['r']==1:
@@ -69,6 +76,8 @@ class Spider:
 		url = 'https://www.zhihu.com/node/QuestionAnswerListV2'
 		headers = self.headers
 		offset = 10
+		if not os.path.exists('./images'):
+			os.makedirs('./images')
 		while(True):
 			params = json.dumps({"url_token":self.num, "pagesize": 10, "offset": offset})
 			data = {'method':'next','_xsrf':self.getXsrf(),'params':params}
@@ -81,19 +90,19 @@ class Spider:
 				print '图片爬取完毕'
 				return
 			else:
-				status = '正在爬取第'+str(offset/10)+'页图片'
-				print status
+				print '正在爬取第'+str(offset/10)+'页图片'
 				for data in listdata:
 					d = pq(data)
 					eles = d(".origin_image.zh-lightbox-thumb.lazy")
 					for ele in eles:
 						srcUrl = pq(ele).attr("data-original")
-						src = requests.get(srcUrl)
 						filename = './images/'+os.path.basename(srcUrl)
-						with open(filename,'wb') as img:
-						 	img.write(src.content)
-							if os.path.getsize(filename) < self.size:
-								os.remove(filename)
+						if not os.path.exists(filename):
+							src = requests.get(srcUrl)
+							with open(filename,'wb') as img:
+								img.write(src.content)
+								if os.path.getsize(filename) < self.size:
+									os.remove(filename)
 				offset += 10
 
 	def index(self):
