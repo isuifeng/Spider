@@ -4,7 +4,7 @@ from PIL import Image
 from pyquery import PyQuery as pq
 
 class Spider:
-        def __init__(self,username,password,num,size,max_page):
+        def __init__(self):
                 self.homeUrl = 'https://www.zhihu.com'
                 self.siteUrl = 'https://www.zhihu.com/question/'
                 self.captchaUrl = 'https://www.zhihu.com/captcha.gif'
@@ -15,16 +15,8 @@ class Spider:
                         'Host':'www.zhihu.com',               
                         'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36'
                 }
-                if not num:num = 37709992
-                if not size:size = 100
-                if not max_page:max_page = 1
-
-                self.username = username #用户名
-                self.password = password #密码
-                self.num = num #问题编号
-                self.size = int(size)*1000 #文件大小
-                self.max_offset = int(max_page)*10 #下载文件总页数的偏移量
-                print self.username,self.password,self.num,self.size,self.max_offset
+                global session
+                session = requests.session()
 
         #获取xsrf
         def getXsrf(self):
@@ -48,25 +40,6 @@ class Spider:
                 im.show()               
                 captcha = raw_input()
                 return captcha
-
-        #登录
-        def login(self):
-                global session
-                session = requests.session()
-                headers = self.headers
-                xsrf = self.getXsrf()
-                captcha = self.getCaptcha()
-                if re.match(r"^1\d{10}$", self.username):
-                	type = 'phone_num'
-                else:
-                	type = 'email'
-                url = 'http://www.zhihu.com/login/'+type
-                data = {type:self.username,'password':self.password,'_xsrf':xsrf,'captcha':captcha,'remember_me':'true'}
-                res = session.post(url,data = data,headers = headers)
-                print res.json()['msg']
-                if res.json()['r']==1:
-                        print u'登录失败'
-                        exit()
 
         def getImages(self):
                 url = 'https://www.zhihu.com/node/QuestionAnswerListV2'
@@ -101,14 +74,46 @@ class Spider:
                                                                         os.remove(filename)
                                 offset += 10
 
+        def setValue(self):
+                username = raw_input("Please enter your username:")
+                password = raw_input('Please enter your password:')
+                num = raw_input('Please enter a question number:')
+                size = raw_input('Filter the image size(kb):')
+                max_page = raw_input('Crawl the total number of pages set:')
+
+                if not num:num = 37709992
+                if not size:size = 100
+                if not max_page:max_page = 1
+
+                self.username = username #用户名
+                self.password = password #密码
+                self.num = num #问题编号
+                self.size = int(size)*1000 #文件大小
+                self.max_offset = int(max_page)*10 #下载文件总页数的偏移量
+                print self.username,self.password,self.num,self.size,self.max_offset
+
+        #登录
+        def login(self):
+                headers = self.headers
+                xsrf = self.getXsrf()
+                captcha = self.getCaptcha()
+                if re.match(r"^1\d{10}$", self.username):
+                        type = 'phone_num'
+                else:
+                        type = 'email'
+                url = 'http://www.zhihu.com/login/'+type
+                data = {type:self.username,'password':self.password,'_xsrf':xsrf,'captcha':captcha,'remember_me':'true'}
+                res = session.post(url,data = data,headers = headers)
+                print res.json()['msg']
+                if res.json()['r']==1:
+                        print u'登录失败'
+                        exit()
+
         def index(self):
+                self.setValue()
                 self.login()
                 self.getImages()
 
-username = raw_input("Please enter your username:")
-password = raw_input('Please enter your password:')
-num = raw_input('Please enter a question number:')
-size = raw_input('Filter the image size(kb):')
-max_page = raw_input('Crawl the total number of pages set:')
-spider = Spider(username,password,num,size,max_page)
+
+spider = Spider()
 spider.index()
