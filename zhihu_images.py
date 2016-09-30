@@ -74,23 +74,39 @@ class Spider:
                                                                         os.remove(filename)
                                 offset += 10
 
-        def setValue(self):
-                username = raw_input("Please enter your username:")
-                password = raw_input('Please enter your password:')
+        def setValue(self,status):
+                if not status:                        
+                        username = raw_input("Please enter your username:")
+                        password = raw_input('Please enter your password:')
+                        self.username = username #用户名
+                        self.password = password #密码  
                 num = raw_input('Please enter a question number:')
                 size = raw_input('Filter the image size(kb):')
                 max_page = raw_input('Crawl the total number of pages set:')
 
                 if not num:num = 37709992
                 if not size:size = 100
-                if not max_page:max_page = 1
+                if not max_page:max_page = 1          
 
-                self.username = username #用户名
-                self.password = password #密码
                 self.num = num #问题编号
                 self.size = int(size)*1000 #文件大小
                 self.max_offset = int(max_page)*10 #下载文件总页数的偏移量
-                print self.username,self.password,self.num,self.size,self.max_offset
+
+        def saveCookies(self):
+                with open('./cookies.txt','w') as output:
+                        cookies = session.cookies.get_dict()
+                        json.dump(cookies,output)
+                        print u"成功生成cookie文件:cookies.txt"
+
+        def getCookies(self):
+                if os.path.exists('./cookies.txt'):
+                        with open('./cookies.txt','r') as f:
+                                cookies = json.load(f)
+                                session.cookies.update(cookies)
+                                return True
+                else:
+                        print u"cookie文件不存在"
+                        return False
 
         #登录
         def login(self):
@@ -105,13 +121,15 @@ class Spider:
                 data = {type:self.username,'password':self.password,'_xsrf':xsrf,'captcha':captcha,'remember_me':'true'}
                 res = session.post(url,data = data,headers = headers)
                 print res.json()['msg']
+                self.saveCookies()
                 if res.json()['r']==1:
                         print u'登录失败'
                         exit()
 
         def index(self):
-                self.setValue()
-                self.login()
+                status = self.getCookies()
+                self.setValue(status)
+                if not status:self.login()
                 self.getImages()
 
 
