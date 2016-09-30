@@ -62,12 +62,6 @@ class Spider:
                 	type = 'email'
                 url = 'http://www.zhihu.com/login/'+type
                 data = {type:self.username,'password':self.password,'_xsrf':xsrf,'captcha':captcha,'remember_me':'true'}
-                # else:
-                #         print u'邮箱登录'
-                #         url = 'http://wwww.zhihu.com/login/email'
-                #         data = {'email':self.username,'password':self.password,'_xsrf':xsrf,'captcha':captcha,'remember_me':'true'}
-                print url
-                print data
                 res = session.post(url,data = data,headers = headers)
                 print res.json()['msg']
                 if res.json()['r']==1:
